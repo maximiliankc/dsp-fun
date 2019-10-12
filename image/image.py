@@ -4,6 +4,11 @@ from matplotlib import image as mplImage
 import numpy as np
 
 class image:
+
+    # colour transform matrices
+    Identity3 = np.eye(3)
+    RGBtoBWNaive3 = np.ones((3,3))/3
+
     def __init__(self, inputPhoto):
         image = plt.imread(inputPhoto)
         self.info = {}
@@ -14,18 +19,23 @@ class image:
             self.info['channels'] = 1
         else:
             raise Exception('2D images only!')
-
+        
         self.image = []
         print(self.info)
         for z in range(self.info['channels']):
             # separating into channels
             self.image.append(image[:,:,z])
+        print(self.image[0].dtype)
+        if self.image[0].dtype is np.dtype(np.uint8):
+            for k in range(self.info['channels']):
+                self.image[k] = self.image[k]/255.0
+            print(self.image[0][50,50])
     
     def save(self, outFile):
         outImage = self.image[0]
         for z in range(1, self.info['channels']):
             outImage = np.dstack((outImage, self.image[z]))
-        print(outImage.shape)
+        print(f'outshape: {outImage.shape}')
         mplImage.imsave(outFile, outImage)    
 
     def interpolate_channel(self, channel, n, background):
@@ -34,6 +44,39 @@ class image:
             for y in range(channel.shape[1]):
                 c[n[0]*x,n[1]*y] = channel[x,y]
         return c
+
+    def gamma(self, gamma):
+        for k in range(self.info['channels']):
+            self.image[k]**gamma
+
+    def colour_transform(self, C):
+        # this is pretty bloody slow, should probably be optimised a lot, maybe recombine into a 3d np array?
+        # assumes that C is an np array
+        print(C)
+        (newN, oldN) = C.shape
+        print(f'{newN}, {oldN}')
+        if oldN < self.info['channels']:
+            print("assuming excess channels aren't colours") # discarding extra channels for now
+        elif oldN > self.info['channels']:
+            print("more colours than channels")
+            return
+        
+        (x,y) = self.image[0].shape
+
+        newImage = []
+        for k in range(newN): # creating new image
+            newImage.append(np.empty((x,y)))
+
+        for k in range(x): # going through pixel by pixel
+            for l in range(y):
+                v = np.array([])
+                for m in range(oldN):
+                  v = np.append(v, self.image[m][k,l])
+                newV = C@v #should be protected against dimensional mis-match (@ is matrix multiplication I believe)
+                for m in range(newN):
+                    newImage[m][k,l] = newV[m]
+        self.info['channels'] = newN
+        self.image = newImage
 
 
 def main():
@@ -46,6 +89,7 @@ def main():
     outFile = args.outFile
 
     photo = image(inFile)
+    photo.colour_transform(photo.RGBtoBWNaive3)
     photo.save(outFile)
 
 
