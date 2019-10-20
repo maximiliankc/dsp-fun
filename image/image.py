@@ -38,6 +38,12 @@ class image:
         print(f'outshape: {outImage.shape}')
         mplImage.imsave(outFile, outImage)    
 
+    def interpolate_image(self, n, background):
+        new_image = []
+        for k in range(self.info['channels']):
+            new_image.append(self.interpolate_channel(self.image[k], n, background[k]))
+        self.image = new_image
+
     def interpolate_channel(self, channel, n, background):
         c = background*np.ones((n[0]*channel.shape[0],n[1]*channel.shape[1]), channel.dtype)
         for x in range(channel.shape[0]):
@@ -89,7 +95,8 @@ def main():
     outFile = args.outFile
 
     photo = image(inFile)
-    photo.colour_transform(photo.RGBtoBWNaive3)
+    background = np.ones(photo.info['channels'])
+    photo.interpolate_image([2,2], background)
     photo.save(outFile)
 
 
