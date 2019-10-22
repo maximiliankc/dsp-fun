@@ -38,7 +38,9 @@ class image:
         print(f'outshape: {outImage.shape}')
         mplImage.imsave(outFile, outImage)    
 
-    def interpolate_image(self, n, background):
+    def interpolate_image(self, n, background=None):
+        if background is None:
+            background = np.zeros(self.info['channels'])
         new_image = []
         for k in range(self.info['channels']):
             new_image.append(self.interpolate_channel(self.image[k], n, background[k]))
@@ -50,6 +52,26 @@ class image:
             for y in range(channel.shape[1]):
                 c[n[0]*x,n[1]*y] = channel[x,y]
         return c
+
+    def separably_filter_channel(self, channel, kernelx, kernely, centre=(0,0)):
+        # making the intermediate vector
+        inter = np.zeros((channel.shape[0], channel.shape[1] + kernelx.shape[0] - 1))
+        # TODO add alternative extension options (mirroring, periodic etc)
+        # do it in the x direction first, why not
+        for k in range(channel.shape[0]):
+            inter[k,:] = np.convolve(channel[k,:], kernelx)
+        inter = inter[:,centre[0]:centre[0] + channel.shape[1]]
+        out = np.zeros((channel.shape[0] + kernely.shape[0] - 1, channel.shape[1]))
+        # then the y direction
+        for k in range(channel.shape[1]):
+            out[:,k] = np.convolve(inter[:,k], kernely)
+        # only return the properly processed part of the image
+        return out[centre[1]:centre[1] + channel.shape[0], :] # may be performance issues returning this, see np indexing page
+    
+    def separably_filter_image(self, kernelx, kernely, centre=(0,0)):
+        for k in range(self.info['channels']):
+            self.image[k] = self.separably_filter_channel(self.image[k], kernelx, kernely, centre)
+        
 
     def gamma(self, gamma):
         for k in range(self.info['channels']):
@@ -95,8 +117,8 @@ def main():
     outFile = args.outFile
 
     photo = image(inFile)
-    background = np.ones(photo.info['channels'])
-    photo.interpolate_image([2,2], background)
+    photo.interpolate_image([3,3])
+    photo.separably_filter_image(np.ones(2), np.ones(2))
     photo.save(outFile)
 
 
