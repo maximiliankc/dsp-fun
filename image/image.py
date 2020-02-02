@@ -31,10 +31,12 @@ class image:
                 self.image[k] = self.image[k]/255.0
             print(self.image[0][50,50])
     
-    def save(self, outFile):
+    def save(self, outFile, safe=False):
         outImage = self.image[0]
         for z in range(1, self.info['channels']):
             outImage = np.dstack((outImage, self.image[z]))
+        if safe and np.max(outImage) > 1:
+            outImage = outImage/np.max(outImage)
         print(f'outshape: {outImage.shape}')
         mplImage.imsave(outFile, outImage)    
 
@@ -71,7 +73,6 @@ class image:
     def separably_filter_image(self, kernelx, kernely, centre=(0,0)):
         for k in range(self.info['channels']):
             self.image[k] = self.separably_filter_channel(self.image[k], kernelx, kernely, centre)
-        
 
     def gamma(self, gamma):
         for k in range(self.info['channels']):
