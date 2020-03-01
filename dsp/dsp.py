@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# W = J/sample
+
 def sinc_kernel(cutoff, halflength): # cutoff should be between 0 and 1, TODO window function, low-pass/highpass
     n = np.arange(-halflength, halflength + 1)
     # get the sinc function:
@@ -35,22 +37,45 @@ def impulse(N):
     x[0] = 1
     return x
 
-def plotFT(x):
+def energy(x):
+    # returns energy, average power
+    E = np.vdot(x,x).real
+    return [E, E/len(x)]
+
+def psd(x, plot=False):
     X = np.fft.fft(x)/(len(x)**0.5)
+    psd = (X*np.conj(X)).real
+    w = np.linspace(0, 2.0, len(x))
+    if plot:
+        plt.ylabel('Magnitude (J/sample)')
+        plt.xlabel('Frequency (π rad/sample)')
+        plt.plot(w, psd)
+        plt.show()
+    return [psd, w]
+
+def plotFT(x):
+    X = np.fft.fft(x)/(len(x)**0.5) # I like an orthonormal fourier transform
     w = np.linspace(0, 2.0, len(x))
     plt.subplot(211)
+    plt.ylabel('Magnitude')
     plt.plot(w, np.abs(X))
     plt.subplot(212)
+    plt.xlabel('Frequency (π rad/sample)')
+    plt.ylabel('Phase (rad)')
     plt.plot(w, np.angle(X))
     plt.show()
+    return [X, w]
 
 def main():
-    x = np.arange(100)
     y = impulse(100)
-    y2 = resample(y, 1, 2, 10)
+    y2 = resample(y, 2, 1, 10)
     print(f"length of y: {len(y)}, length of y2: {len(y2)}")
-    plotFT(y)
-    plotFT(y2)
+    [Y,_] = plotFT(y)
+    print(f"original Energy: {energy(y)}, transformed: {energy(Y)}")
+    [Y2,_] = plotFT(y2)
+    print(f"original Energy: {energy(y2)}, transformed: {energy(Y2)}")
+    psd(y,True)
+    psd(y2,True)
     plt.plot(y)
     plt.plot(y2)
     plt.show()
