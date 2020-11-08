@@ -2,3 +2,7 @@
 *.PNG
 *.JPG
 .vscode/settings.json
+.DS_Store
+minimal_import_state_space/__init__.pyc
+minimal_import_state_space/__pycache__/__init__.cpython-37.pyc
+minimal_import_state_space/__pycache__/stateSpace.cpython-37.pyc
