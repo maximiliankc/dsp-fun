@@ -64,13 +64,17 @@ class StateSpace:
 class Vector:
     v = []
 
-    def __init__(self, v):
-        if not isinstance(v, list):
+    def __init__(self, v, c = None):
+
+        if isinstance(v, list):
+            for n in v:
+                if not isinstance(n, Number):
+                    raise TypeError
+            self.v = v
+        elif isinstance(v, Matrix) and c is not None:
+            self.v = [x[c] for x in v]
+        else:
             raise TypeError
-        for n in v:
-            if not isinstance(n, Number):
-                raise TypeError
-        self.v = v
 
     def __len__(self):
         return len(self.v)
@@ -78,9 +82,10 @@ class Vector:
     def __add__(self, o):
         if len(self.v) != len(o.v):
             raise DimensionError
-        return [v1 + v2 for (v1, v2) in zip(self.v, o.v)]
+        return Vector([v1 + v2 for (v1, v2) in zip(self.v, o.v)])
     
     def __mul__(self, o):
+        # dot product
         if len(self.v) != len(o.v):
            raise DimensionError
         sum = 0
@@ -89,7 +94,22 @@ class Vector:
         return sum
 
     def __getitem__(self, index):
-        pass
+        return self.v[index]
+    
+    def __iter__(self):
+        return iter(self.v)
+
+    def __next__(self):
+        return next(self.v)
+    
+    def __str__(self):
+        s = '[\n'
+        for x in self.v:
+            s += str(x)
+            s += '\n'
+        s += ']'
+        return s
+
 
 class Matrix:
     m = []
@@ -97,55 +117,49 @@ class Matrix:
     c = 0
 
     def __init__(self, m):
-        pass
+        self.r = len(m)
+        self.c = len(m[0])
+        validate_matrix(m, self.r, self.c)
+        self.m = m
 
     def __add__(self, o):
-        pass
+        if self.c != o.c or self.r != o.r:
+            raise DimensionError
 
     def __matmul__(self, o):
+        if isinstance(o, Vector):
+            if len(o) != self.c:
+                raise DimensionError
+            return Vector([Vector(x)*o for x in self.m])
+        elif isinstance(o, Matrix):
+            if self.c != o.r:
+                raise DimensionError
+            matrixOut = []
+            for k in self:
+                matrixOut.append([Vector(k)*Vector(o, c) for c in range(o.c)])
+            return Matrix(matrixOut)
 
 
+    def __getitem__(self, index):
+        if isinstance(index, tuple):
+            (r, c) = index
+            return self.m[r][c]
+        else:
+            return self.m[index]
+    
+    def __iter__(self):
+        return iter(self.m)
 
+    def __next__(self):
+        return next(self.m)
 
-def dot(V1, V2):
-    sum = 0
-    for (v1, v2) in zip(V1, V2):
-        sum += v1*v2
-    return sum
-        
-def vector_add(v1, v2):
-    return [x + y for (x, y) in zip(v1, v2)]
-
-def matrix_multiply(M1, M2):
-    # M2 can be a column vector, M1 cannot
-    cM1 = len(M1[0])
-    rM1 = len(M1)
-    validate_matrix(M1, rM1, cM1)
-    rM2 = len(M2)
-    if cM1 != rM2:
-        print(f"M1 has {cM1} columns, M2 has {rM2} rows")
-        raise DimensionError
-
-    matrix = True if isinstance(M2[0], list) else False
-
-    if matrix:
-        cM2 = len(M2[0])
-        validate_matrix(M2, rM2, cM2)
-        Mo = [_m_helper_function(m1, M2) for m1 in M1]
-        # a little bit of debugging testing:
-        validate_matrix(Mo, rM1, cM2)
-
-    else:
-        Mo = [dot(m1, M2) for m1 in M1]
-
-    return Mo
-
-def _m_helper_function(m1, M2):
-    out = []
-    for n in range(len(M2[0])):
-        m2 = [r[n] for r in M2]
-        out.append(dot(m1, m2))
-    return out
+    def __str__(self):
+        s = '[\n'
+        for x in self.m:
+            s += str(x)
+            s += '\n'
+        s += ']'
+        return s
 
 def validate_matrix(M, r, c):
     # check that a matrix (a list of lists) has the correct number of rows and columns
@@ -169,8 +183,11 @@ class DimensionError(Exception):
 
 
 
-# define as: [[a, b],
-#             [c, d]]
+
+
+# Matrix defined as: [[a, b],
+#                     [c, d]]
+# (a list of rows)
 # a list such as [a,
 #                 b]
 # can be assumed to be a column vector
@@ -189,16 +206,43 @@ class DimensionError(Exception):
 
 
 def main():
-    x0 = [1, 0]
-    A = [[1, 2],
-         [3, 4]]
-    B = [[1, 2],
-         [3, 4]]
-    C = [[1, 2],
-         [3, 4]]
+    x = Vector([1, 0])
+    y = Vector([3, 1])
+    A = Matrix([[1, 2],
+                [3, 4]])
+    B = Matrix([[5, 6],
+                [7, 8]])
+    C = Matrix([[9, 10],
+                [11, 12]])
 
-    s = StateSpace(x0, A, B, C)
-    s.step([1, 2])
+    I = Matrix([[1,0],
+                [0,1]])
+
+    X = Vector([1,1])
+    Y = Matrix([[1,2],
+                [3,4],
+                [5,6]])
+
+    print(f'I squared:\n{I@I}')
+    print(f'AB:\n{A@B}')
+    print(f'YA\n{Y@A}')
+
+
+
+    # print(x + y)
+    # print(x*y)
+
+    # print(f"x: {x}")
+    # print(f"A: {A}")
+    # print(f"B: {B}")
+    # print(f"C: {C}")
+
+    # print(f"A@x {A@x}")
+    # print(f"B@x {B@x}")
+    # print(f"C@x {C@x}")
+
+    #s = StateSpace(x0, A, B, C)
+    #s.step([1, 2])
 
 if __name__ == "__main__":
     main()
