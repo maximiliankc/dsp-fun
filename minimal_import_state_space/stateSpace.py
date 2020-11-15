@@ -68,12 +68,20 @@ class Vector:
     
     def __mul__(self, o):
         # dot product
-        if len(self.v) != len(o.v):
-           raise DimensionError
-        sum = 0
-        for (v1, v2) in zip(self.v, o.v):
-            sum += v1*v2
-        return sum
+        if isinstance(o, Vector):
+            if len(self.v) != len(o.v):
+                raise DimensionError
+            sum = 0
+            for (v1, v2) in zip(self.v, o.v):
+                sum += v1*v2
+            return sum
+        elif isinstance(o, Number):
+            return Vector([x*o for x in self])
+        else:
+            raise NotImplementedError
+    
+    def __rmul__(self, o):
+        return self.__mul__(o)
 
     def __getitem__(self, index):
         return self.v[index]
@@ -126,6 +134,20 @@ class Matrix:
             for k in self:
                 matrixOut.append([Vector(k)*Vector(o, c) for c in range(o.c)])
             return Matrix(matrixOut)
+        else:
+            raise NotImplementedError
+        
+    def __mul__(self, o):
+        if isinstance(o, Number):
+            q = []
+            for row in self:
+                q.append([x*o for x in row])
+            return Matrix(q)
+        else:
+            return NotImplementedError
+
+    def __rmul__(self, o):
+        return self.__mul__(o)
 
 
     def __getitem__(self, index):
