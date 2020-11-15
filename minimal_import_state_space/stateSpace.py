@@ -1,5 +1,5 @@
 from numbers import Number
-
+import matplotlib.pyplot as plt
 
 class StateSpace:
 
@@ -8,9 +8,6 @@ class StateSpace:
     B = []
     C = []
     D = []
-    n = 0
-    p = 0
-    q = 0
 
     def __init__(self, x0, A, B=None, C=None, D=None):
         # rxc
@@ -24,47 +21,32 @@ class StateSpace:
 
         n = len(x0)
         if B is None:
-            B = n*[[0]]
-        p = len(B[0])
+            B = Matrix(n*[[0]])
+        p = B.c
         if C is None:
-            C = [n*[0]]
-        q = len(C)
+            C = Matrix([n*[0]])
+        q = C.r
         if D is None:
-            D = q*[p*[0]]
-
-        validate_matrix(A, n, n)
-        validate_matrix(B, n, p)
-        validate_matrix(C, q, n)
-        validate_matrix(D, q, p)
-
-        print(f'A: {A}')
-        print(f'B: {B}')
-        print(f'C: {C}')
-        print(f'D: {D}')
+            D = Matrix(q*[p*[0]])
 
         self.x = x0
         self.A = A
         self.B = B
         self.C = C
         self.D = D
-        self.n = n
-        self.p = p
-        self.q = q
 
-
-    def step(self, u=[0]):
-        if len(u) != self.p:
-            print(f"vector {u} doesn't have length {self.p}")
-            raise DimensionError
-        self.x = vector_add(matrix_multiply(self.x, self.A), matrix_multiply(u, self.B))
-        y = vector_add(matrix_multiply(self.x, self.C), matrix_multiply(u, self.D))
+    def step(self, u=None):
+        if u is None:
+            u = Vector([0])
+        self.x = self.A@self.x + self.B@u
+        y = self.C@self.x + self.D@u
         return (self.x.copy(), y)
 
 
 class Vector:
     v = []
 
-    def __init__(self, v, c = None):
+    def __init__(self, v, c=None):
 
         if isinstance(v, list):
             for n in v:
@@ -109,6 +91,12 @@ class Vector:
             s += '\n'
         s += ']'
         return s
+    
+    def __repr__(self):
+        return "Vector: " + str(self)
+    
+    def copy(self):
+        return Vector(self.v.copy())
 
 
 class Matrix:
@@ -119,8 +107,8 @@ class Matrix:
     def __init__(self, m):
         self.r = len(m)
         self.c = len(m[0])
-        validate_matrix(m, self.r, self.c)
         self.m = m
+        self._validate_matrix()
 
     def __add__(self, o):
         if self.c != o.c or self.r != o.r:
@@ -160,23 +148,27 @@ class Matrix:
             s += '\n'
         s += ']'
         return s
+    
+    def __repr__(self):
+        return "Matrix: " + str(self)
 
-def validate_matrix(M, r, c):
-    # check that a matrix (a list of lists) has the correct number of rows and columns
-    # we will at lease assume that the list is populated by lists or numbers
-    if M is None and r != 0:
-        raise DimensionError
-    rows = len(M)
-    if rows != r:
-        print(f"Matrix: {M} doesn't have {r} rows")
-        raise DimensionError
-
-    matrix = True if isinstance(M[0], list) else False
-
-    for m in M:
-        if matrix and (len(m) != c):
-            print(f"Matrix {M} doesn't have {c} columns")
+    def _validate_matrix(self):
+        # check that a matrix (a list of lists) has the correct number of rows and columns
+        # we will at lease assume that the list is populated by lists or numbers
+        if self.m is None and self.r != 0:
             raise DimensionError
+        rows = len(self.m)
+        if rows != self.r:
+            print(f"Matrix: {self.m} doesn't have {self.r} rows")
+            raise DimensionError
+
+        matrix = True if isinstance(self.m[0], list) else False
+
+        for m in self.m:
+            if matrix and (len(m) != self.c):
+                print(f"Matrix {self.m} doesn't have {self.c} columns")
+                raise DimensionError
+
 
 class DimensionError(Exception):
     pass
@@ -205,44 +197,29 @@ class DimensionError(Exception):
 # so you can have 
 
 
+def twoBodyProblem():
+    pass
+
+
 def main():
-    x = Vector([1, 0])
-    y = Vector([3, 1])
-    A = Matrix([[1, 2],
-                [3, 4]])
-    B = Matrix([[5, 6],
-                [7, 8]])
-    C = Matrix([[9, 10],
-                [11, 12]])
+    x0 = Vector([0,0])
+    fs = 1000
+    A = Matrix([[1, 1/fs],
+                [0, 1]])
+    B = Matrix([[0],
+                [1/fs]])
+    g = Vector([-9.8])
+    model = StateSpace(x0, A, B)
+    y = []
+    for _ in range(1):
+        y.append(model.step(g))
+    
+    x = [v for (v,_) in y]
 
-    I = Matrix([[1,0],
-                [0,1]])
-
-    X = Vector([1,1])
-    Y = Matrix([[1,2],
-                [3,4],
-                [5,6]])
-
-    print(f'I squared:\n{I@I}')
-    print(f'AB:\n{A@B}')
-    print(f'YA\n{Y@A}')
+    plt.plot(x)
+    plt.show()
 
 
-
-    # print(x + y)
-    # print(x*y)
-
-    # print(f"x: {x}")
-    # print(f"A: {A}")
-    # print(f"B: {B}")
-    # print(f"C: {C}")
-
-    # print(f"A@x {A@x}")
-    # print(f"B@x {B@x}")
-    # print(f"C@x {C@x}")
-
-    #s = StateSpace(x0, A, B, C)
-    #s.step([1, 2])
 
 if __name__ == "__main__":
     main()
