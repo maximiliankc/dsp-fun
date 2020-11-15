@@ -1,3 +1,5 @@
+from numbers import Number
+
 
 class StateSpace:
 
@@ -52,8 +54,57 @@ class StateSpace:
 
     def step(self, u=[0]):
         if len(u) != self.p:
+            print(f"vector {u} doesn't have length {self.p}")
             raise DimensionError
-        #self.x = vector_add(matrix_multiply(self.x, self.A)
+        self.x = vector_add(matrix_multiply(self.x, self.A), matrix_multiply(u, self.B))
+        y = vector_add(matrix_multiply(self.x, self.C), matrix_multiply(u, self.D))
+        return (self.x.copy(), y)
+
+
+class Vector:
+    v = []
+
+    def __init__(self, v):
+        if not isinstance(v, list):
+            raise TypeError
+        for n in v:
+            if not isinstance(n, Number):
+                raise TypeError
+        self.v = v
+
+    def __len__(self):
+        return len(self.v)
+    
+    def __add__(self, o):
+        if len(self.v) != len(o.v):
+            raise DimensionError
+        return [v1 + v2 for (v1, v2) in zip(self.v, o.v)]
+    
+    def __mul__(self, o):
+        if len(self.v) != len(o.v):
+           raise DimensionError
+        sum = 0
+        for (v1, v2) in zip(self.v, o.v):
+            sum += v1*v2
+        return sum
+
+    def __getitem__(self, index):
+        pass
+
+class Matrix:
+    m = []
+    r = 0
+    c = 0
+
+    def __init__(self, m):
+        pass
+
+    def __add__(self, o):
+        pass
+
+    def __matmul__(self, o):
+
+
 
 
 def dot(V1, V2):
@@ -103,12 +154,14 @@ def validate_matrix(M, r, c):
         raise DimensionError
     rows = len(M)
     if rows != r:
+        print(f"Matrix: {M} doesn't have {r} rows")
         raise DimensionError
 
     matrix = True if isinstance(M[0], list) else False
 
     for m in M:
         if matrix and (len(m) != c):
+            print(f"Matrix {M} doesn't have {c} columns")
             raise DimensionError
 
 class DimensionError(Exception):
@@ -145,7 +198,7 @@ def main():
          [3, 4]]
 
     s = StateSpace(x0, A, B, C)
-    s.step()
+    s.step([1, 2])
 
 if __name__ == "__main__":
     main()
