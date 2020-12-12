@@ -21,13 +21,13 @@ class StateSpace:
 
         n = len(x0)
         if B is None:
-            B = Matrix(n*[[0]])
+            B = Matrix([[0] for _ in range(n)])
         p = B.c
         if C is None:
             C = Matrix([n*[0]])
         q = C.r
         if D is None:
-            D = Matrix(q*[p*[0]])
+            D = Matrix([p*[0] for _ in range(q)])
 
         self.x = x0
         self.A = A
