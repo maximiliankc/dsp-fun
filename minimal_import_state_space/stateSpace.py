@@ -40,7 +40,7 @@ class StateSpace:
             u = Vector([0])
         self.x = self.A@self.x + self.B@u
         y = self.C@self.x + self.D@u
-        return (self.x.copy(), y)
+        return y
 
 
 class Vector:
@@ -65,6 +65,11 @@ class Vector:
         if len(self.v) != len(o.v):
             raise DimensionError
         return Vector([v1 + v2 for (v1, v2) in zip(self.v, o.v)])
+
+    def __sub__(self, o):
+        if len(self.v) != len(o.v):
+            raise DimensionError
+        return Vector([v1 - v2 for (v1, v2) in zip(self.v, o.v)])
     
     def __mul__(self, o):
         # dot product
@@ -82,6 +87,12 @@ class Vector:
     
     def __rmul__(self, o):
         return self.__mul__(o)
+
+    def __truediv__(self, o):
+        if isinstance(o, Number):
+            return self.__mul__(1/o)
+        else:
+            return NotImplementedError
 
     def __getitem__(self, index):
         return self.v[index]
@@ -102,9 +113,16 @@ class Vector:
     
     def __repr__(self):
         return "Vector: " + str(self)
+
+    def __abs__(self):
+        out = self*self
+        return out**(1/2)
     
     def copy(self):
         return Vector(self.v.copy())
+    
+    def unit(self):
+        return self/abs(self)
 
 
 class Matrix:
@@ -149,6 +167,14 @@ class Matrix:
     def __rmul__(self, o):
         return self.__mul__(o)
 
+    def __truediv__(self, o):
+        if isinstance(o, Number):
+            if o == 0:
+                return float('inf')
+            else:
+                return self.__mul__(1/o)
+        else:
+            return NotImplementedError
 
     def __getitem__(self, index):
         if isinstance(index, tuple):
@@ -220,26 +246,108 @@ class DimensionError(Exception):
 
 
 def twoBodyProblem():
-    pass
+    # one dimension
+    fs = 1
+    T = 1/fs
 
+    m1 = 1
+    m2 = 1
+    G = 1
+
+    r1 = Vector([1,
+                 0,
+                 0])
+
+    v1 = Vector([0,
+                 1,
+                 0])
+
+    r2 = Vector([-1,
+                 0,
+                 0])
+    
+    v2 = Vector([0,
+                 1,
+                 0])
+
+    A = Matrix([[1, T, 0, 0, 0, 0],     # x
+                [0, 1, 0, 0, 0, 0],     # vx
+                [0, 0, 1, T, 0, 0],     # y  
+                [0, 0, 0, 1, 0, 0],     # vy
+                [0, 0, 0, 0, 1, T],     # z
+                [0, 0, 0, 0, 0, 1]])    # vz
+
+    B = Matrix([[0, 0, 0],
+                [T, 0, 0],
+                [0, 0, 0],
+                [0, T, 0],
+                [0, 0, 0],
+                [0, 0, T]])
+
+    C = Matrix([[1, 0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 0, 1, 0]])
+
+    x1 = Vector([r1[0],     # x
+                 v1[0],     # v_x
+                 r1[1],     # y
+                 v1[1],     # v_y
+                 r1[2],     # z
+                 v1[2]])    # z_y
+
+    x2 = Vector([r2[0],     # x
+                 v2[0],     # v_x
+                 r2[1],     # y
+                 v2[1],     # v_y 
+                 r2[2],     # z
+                 v2[2]])   # v_z
+    
+    s1 = StateSpace(x1, A, B, C)
+    s2 = StateSpace(x2, A, B, C)
+
+    o1 = [r1]
+    o2 = [r2]
+    for _ in range(200000):
+        r12 = r1 - r2
+        r21 = r2 - r1
+
+        F12 = r12.unit()*-G*m2/(r12*r12)
+        F21 = r21.unit()*-G*m1/(r21*r21)
+
+        r1 = s1.step(F12)
+        r2 = s2.step(F21)
+
+        o1.append(r1)
+        o2.append(r2)
+
+    r = [{}, {}]
+    
+    r[0]['x'] = [q[0] for q in o1]
+    r[0]['y'] = [q[1] for q in o1]
+    r[0]['z'] = [q[2] for q in o1]
+
+    r[1]['x'] = [q[0] for q in o2]
+    r[1]['y'] = [q[1] for q in o2]
+    r[1]['z'] = [q[2] for q in o2]
+
+    return r
 
 def main():
-    x0 = Vector([0,0])
-    fs = 1000
-    A = Matrix([[1, 1/fs],
-                [0, 1]])
-    B = Matrix([[0],
-                [1/fs]])
-    g = Vector([-9.8])
-    model = StateSpace(x0, A, B)
-    y = []
-    for _ in range(1):
-        y.append(model.step(g))
-    
-    x = [v for (v,_) in y]
+    r = twoBodyProblem()
 
-    plt.plot(x)
+    fig = plt.figure()
+    plt.plot(r[0]['x'], r[0]['y'])
+    plt.plot(r[1]['x'], r[1]['y'])
+    plt.plot()
     plt.show()
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot(r[0]['x'], r[0]['y'], r[0]['z'])
+    ax.plot(r[1]['x'], r[1]['y'], r[1]['z'])
+    plt.show()
+
+
 
 
 
