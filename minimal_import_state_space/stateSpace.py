@@ -246,28 +246,29 @@ class DimensionError(Exception):
 
 
 def twoBodyProblem():
-    # one dimension
-    fs = 1
+    fs = 0.001
     T = 1/fs
 
-    m1 = 1
-    m2 = 1
-    G = 1
+    p = 3000*24*60*60 # 100 days
 
-    r1 = Vector([1,
+    m1 = 5.972e24
+    m2 = 7.35e22
+    G = 6.67408e-11
+
+    r1 = Vector([-4.67e6,
                  0,
                  0])
 
     v1 = Vector([0,
-                 1,
+                 0, #-1.3e1,
                  0])
 
-    r2 = Vector([-1,
+    r2 = Vector([3.844e8,
                  0,
                  0])
     
     v2 = Vector([0,
-                 1,
+                 1.2e3, #1.022e3,
                  0])
 
     A = Matrix([[1, T, 0, 0, 0, 0],     # x
@@ -307,7 +308,7 @@ def twoBodyProblem():
 
     o1 = [r1]
     o2 = [r2]
-    for _ in range(200000):
+    for _ in range(p//int(T)):
         r12 = r1 - r2
         r21 = r2 - r1
 
@@ -335,17 +336,25 @@ def twoBodyProblem():
 def main():
     r = twoBodyProblem()
 
-    fig = plt.figure()
-    plt.plot(r[0]['x'], r[0]['y'])
-    plt.plot(r[1]['x'], r[1]['y'])
-    plt.plot()
-    plt.show()
+    # fig = plt.figure()
+    # plt.plot(r[0]['x'], r[0]['y'])
+    # plt.plot(r[1]['x'], r[1]['y'])
+    # plt.plot()
+    # plt.show()
+
+    rx = [y - x for (x, y) in zip(r[0]['x'], r[1]['x'])]
+    ry = [y - x for (x, y) in zip(r[0]['y'], r[1]['y'])]
 
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.plot(r[0]['x'], r[0]['y'], r[0]['z'])
-    ax.plot(r[1]['x'], r[1]['y'], r[1]['z'])
+    plt.plot(rx, ry)
+    plt.gca().set_aspect('equal', adjustable='box')
     plt.show()
+
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.plot(r[0]['x'], r[0]['y'], r[0]['z'])
+    # ax.plot(r[1]['x'], r[1]['y'], r[1]['z'])
+    # plt.show()
 
 
 
